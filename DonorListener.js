@@ -1,7 +1,7 @@
 const Discord=require('discord.js');
 const ontime = require('ontime');
 const bot=new Discord.Client();
-const config = require('./RoleListenerConfig.json');
+const config = require('./DonorListenerConfig.json');
 
 
 bot.on('ready', () => {
@@ -15,14 +15,33 @@ ontime({cycle: '00:00'}, async function(ot) {
 	return;
 });
 
-bot.on('guildMemberUpdate', async (oldMember, newMember) => {
+bot.on('guildMemberAdd', async (member) => {
+	let guildID = member.guild.id;
+	for(let i = 0; i < config.servers.length; i++)
+	{
+		if(config.servers[i].id == guildID)
+		{
+			let guild = bot.guilds.get(config.mainServer);			
+			let donorMember = await guild.fetchMember(member.user.id).catch(error => {
+				console.log("Could not locate member in main server");				
+			});
+			
+			if(!donorMember)
+			{
+				return;				
+			}
+			if(donorMember.roles.has(config.mainDonorRole))
+			{				
+				await AddDonorRoles(member);
+			}
+		}
+	}
+});
 
-	let guild = bot.guilds.get(config.mainServer);
+bot.on('guildMemberUpdate', async (oldMember, newMember) => {	
 
-	let donorRole = guild.roles.get(config.mainDonorRole);
-
-	let hadRole = oldMember.roles.has(donorRole.id);
-	let hasRole = newMember.roles.has(donorRole.id);
+	let hadRole = oldMember.roles.has(config.mainDonorRole);
+	let hasRole = newMember.roles.has(config.mainDonorRole);
 
 	if(hasRole && !hadRole)
 	{
@@ -46,9 +65,7 @@ bot.on('guildMemberUpdate', async (oldMember, newMember) => {
 
 async function CheckAllMembers()
 {
-	let guild = bot.guilds.get(config.mainServer);
-
-	let donorRole = guild.roles.get(config.mainDonorRole);
+	let guild = bot.guilds.get(config.mainServer);	
 
 	await guild.fetchMembers();
 
@@ -56,7 +73,7 @@ async function CheckAllMembers()
 
 	for(let [id,member] of guild.members)
 	{
-		if(member.roles.has(donorRole.id))
+		if(member.roles.has(config.mainDonorRole))
 		{
 			console.log("Member: "+member.displayName+"("+id+") has donor role");
 			let result = await AddDonorRoles(member);
