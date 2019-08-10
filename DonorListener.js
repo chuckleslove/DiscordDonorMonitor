@@ -32,11 +32,14 @@ bot.on('guildMemberAdd', async (member) => {
 			}
 			if(donorMember.roles.has(config.mainDonorRole))
 			{				
-				await AddDonorRoles(member);
+				let result = await AddDonorRoles(member);
+
+				if(result) { return bot.channels.get(config.logChannel).send(result).catch(console.error); }
 			}
 		}
 	}
 });
+
 
 bot.on('guildMemberUpdate', async (oldMember, newMember) => {	
 
